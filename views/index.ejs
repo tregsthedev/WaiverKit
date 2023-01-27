@@ -56,13 +56,13 @@
         </div>
         <div class="form-field">
           <input type="tel"
-                 pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}"
+                 pattern="[0-9]{3}[0-9]{3}[0-9]{4}"
                  id="phone"
                  name="phone"
                  class="c-input"
                  size="40"
                  placeholder="<%= exampleData.phone %>"
-                 oninvalid="this.setCustomValidity('Please enter a valid phone number. \(123-123-1234\)')"
+                 oninvalid="this.setCustomValidity('Please enter a valid phone number. No dashes. \(1231231234\)')"
                  oninput="setCustomValidity('')"
                  required>
         </div>
@@ -291,13 +291,13 @@
         </div>
         <div class="form-field">
           <input type="tel"
-                 pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}"
+                 pattern="[0-9]{3}[0-9]{3}[0-9]{4}"
                  id="parentPhone"
                  name="parentPhone"
                  class="c-input"
                  size="40"
                  placeholder="<%= exampleData.parentPhone %>"
-                 oninvalid="this.setCustomValidity('Please enter a valid phone number. \(123-123-1234\)')"
+                 oninvalid="this.setCustomValidity('Please enter a valid phone number. No dashes. \(1231231234\)')"
                  oninput="setCustomValidity('')"
                  required>
         </div>
