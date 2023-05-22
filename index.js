@@ -74,7 +74,7 @@ app.post('/sign', async (req, res) => {
         address: {
             street: req.body.address,
             city: req.body.city,
-            state: req.body.state,
+            province: req.body.province,
             zip: req.body.zip
         },
         date: req.body.date,
