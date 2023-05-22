@@ -81,7 +81,7 @@ app.post('/sign', async (req, res) => {
         agreement: req.body.agreement
     }
     
-    await axios.post("https://high-weasel-42.deno.dev", fmtBody)
+    await axios.post("https://localhost:3000", fmtBody)
 })
 
 
@@ -122,7 +122,7 @@ app.listen(process.env.PORT || 3000, () => console.log('PactMaker is up and runn
 function sendEmails(data) {
   const attachment = {
     'Content': data.agreement,
-    'Name': `Hack PNW Liability Waiver ${data.date}.pdf`,
+    'Name': `AngelHacks Toronto Liability Waiver ${data.date}.pdf`,
     'ContentType': 'application/pdf'
   }
 
@@ -132,6 +132,7 @@ function sendEmails(data) {
     'To': `${data.email}, ${data.parentEmail}`,
     'Subject': signeeSubject(data),
     'HtmlBody': emailContentSignee(data),
+      'MessageStream': `waivers`,
     'Attachments': [attachment]
   }, (err, results) => {
     if (err) {
