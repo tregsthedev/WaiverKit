@@ -1,0 +1,246 @@
+<html>
+<head>
+<title>index.js</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #4c4f69;}
+.s1 { color: #7c7f93;}
+.s2 { color: #40a02b;}
+.s3 { color: #8839ef;}
+.s4 { color: #04a5e5;}
+.s5 { color: #9ca0b0; font-style: italic;}
+.s6 { color: #fe640b;}
+.s7 { color: #d20f39; font-style: italic;}
+</style>
+</head>
+<body bgcolor="#eff1f5">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+index.js</font>
+</center></td></tr></table>
+<pre><span class="s0">require</span><span class="s1">(</span><span class="s2">'dotenv'</span><span class="s1">).</span><span class="s0">config</span><span class="s1">()</span>
+<span class="s3">const </span><span class="s0">express </span><span class="s4">= </span><span class="s0">require</span><span class="s1">(</span><span class="s2">'express'</span><span class="s1">)</span>
+<span class="s3">const </span><span class="s0">app </span><span class="s4">= </span><span class="s0">express</span><span class="s1">()</span>
+<span class="s3">const </span><span class="s0">path </span><span class="s4">= </span><span class="s0">require</span><span class="s1">(</span><span class="s2">'path'</span><span class="s1">)</span>
+<span class="s3">const </span><span class="s0">fs </span><span class="s4">= </span><span class="s0">require</span><span class="s1">(</span><span class="s2">'fs'</span><span class="s1">)</span>
+<span class="s3">const </span><span class="s1">{ </span><span class="s0">chromium </span><span class="s1">} </span><span class="s4">= </span><span class="s0">require</span><span class="s1">(</span><span class="s2">'@playwright/test'</span><span class="s1">)</span>
+<span class="s3">const </span><span class="s0">bodyParser </span><span class="s4">= </span><span class="s0">require</span><span class="s1">(</span><span class="s2">'body-parser'</span><span class="s1">)</span>
+<span class="s3">const </span><span class="s0">ejs </span><span class="s4">= </span><span class="s0">require</span><span class="s1">(</span><span class="s2">'ejs'</span><span class="s1">)</span>
+<span class="s3">const </span><span class="s0">_ </span><span class="s4">= </span><span class="s0">require</span><span class="s1">(</span><span class="s2">'lodash'</span><span class="s1">)</span>
+<span class="s3">const </span><span class="s0">moment </span><span class="s4">= </span><span class="s0">require</span><span class="s1">(</span><span class="s2">'moment'</span><span class="s1">)</span>
+<span class="s3">const </span><span class="s0">axios </span><span class="s4">= </span><span class="s0">require</span><span class="s1">(</span><span class="s2">'axios'</span><span class="s1">);</span>
+
+<span class="s5">// Cache agreement template</span>
+<span class="s3">const </span><span class="s0">agreement </span><span class="s4">= </span><span class="s0">fs</span><span class="s1">.</span><span class="s0">readFileSync</span><span class="s1">(</span><span class="s2">`</span><span class="s0">$</span><span class="s1">{</span><span class="s0">__dirname</span><span class="s1">}</span><span class="s2">/views/agreement.ejs`</span><span class="s1">, </span><span class="s2">'utf8'</span><span class="s1">)</span>
+
+<span class="s5">// Cache email subjects and content</span>
+<span class="s3">const </span><span class="s0">emailContentInternal </span><span class="s4">= </span><span class="s0">ejs</span><span class="s1">.</span><span class="s0">compile</span><span class="s1">(</span><span class="s0">fs</span><span class="s1">.</span><span class="s0">readFileSync</span><span class="s1">(</span><span class="s2">`</span><span class="s0">$</span><span class="s1">{</span><span class="s0">__dirname</span><span class="s1">}</span><span class="s2">/emails/internal.ejs`</span><span class="s1">, </span><span class="s2">'utf8'</span><span class="s1">))</span>
+<span class="s3">const </span><span class="s0">emailContentSignee </span><span class="s4">= </span><span class="s0">ejs</span><span class="s1">.</span><span class="s0">compile</span><span class="s1">(</span><span class="s0">fs</span><span class="s1">.</span><span class="s0">readFileSync</span><span class="s1">(</span><span class="s2">`</span><span class="s0">$</span><span class="s1">{</span><span class="s0">__dirname</span><span class="s1">}</span><span class="s2">/emails/signee.ejs`</span><span class="s1">, </span><span class="s2">'utf8'</span><span class="s1">))</span>
+<span class="s3">const </span><span class="s0">signeeSubject </span><span class="s4">= </span><span class="s0">ejs</span><span class="s1">.</span><span class="s0">compile</span><span class="s1">(</span><span class="s0">process</span><span class="s1">.</span><span class="s0">env</span><span class="s1">.</span><span class="s0">SIGNEE_EMAIL_SUBJECT </span><span class="s4">|| </span><span class="s2">''</span><span class="s1">)</span>
+<span class="s3">const </span><span class="s0">internalSubject </span><span class="s4">= </span><span class="s0">ejs</span><span class="s1">.</span><span class="s0">compile</span><span class="s1">(</span><span class="s0">process</span><span class="s1">.</span><span class="s0">env</span><span class="s1">.</span><span class="s0">INTERNAL_EMAIL_SUBJECT </span><span class="s4">|| </span><span class="s2">''</span><span class="s1">)</span>
+<span class="s3">const </span><span class="s0">examples </span><span class="s4">= </span><span class="s0">JSON</span><span class="s1">.</span><span class="s0">parse</span><span class="s1">(</span><span class="s0">fs</span><span class="s1">.</span><span class="s0">readFileSync</span><span class="s1">(</span><span class="s2">`</span><span class="s0">$</span><span class="s1">{</span><span class="s0">__dirname</span><span class="s1">}</span><span class="s2">/examples.json`</span><span class="s1">, </span><span class="s2">'utf8'</span><span class="s1">))</span>
+
+<span class="s0">validateConfig</span><span class="s1">()</span>
+
+<span class="s3">const </span><span class="s0">postmark </span><span class="s4">= </span><span class="s0">require</span><span class="s1">(</span><span class="s2">'postmark'</span><span class="s1">)</span>
+<span class="s3">const </span><span class="s0">client </span><span class="s4">= </span><span class="s3">new </span><span class="s0">postmark</span><span class="s1">.</span><span class="s0">Client</span><span class="s1">(</span><span class="s0">process</span><span class="s1">.</span><span class="s0">env</span><span class="s1">.</span><span class="s0">POSTMARK_SERVER_TOKEN</span><span class="s1">)</span>
+
+<span class="s0">app</span><span class="s1">.</span><span class="s0">set</span><span class="s1">(</span><span class="s2">'view engine'</span><span class="s1">, </span><span class="s2">'ejs'</span><span class="s1">)</span>
+<span class="s0">app</span><span class="s1">.</span><span class="s0">use</span><span class="s1">(</span><span class="s0">bodyParser</span><span class="s1">.</span><span class="s0">urlencoded</span><span class="s1">({ </span><span class="s0">extended</span><span class="s4">: </span><span class="s3">true </span><span class="s1">}))</span>
+<span class="s0">app</span><span class="s1">.</span><span class="s0">use</span><span class="s1">(</span><span class="s0">express</span><span class="s1">.</span><span class="s0">static</span><span class="s1">(</span><span class="s2">'public'</span><span class="s1">))</span>
+
+<span class="s3">const </span><span class="s0">viewData </span><span class="s4">= </span><span class="s1">{</span>
+  <span class="s0">title</span><span class="s4">: </span><span class="s0">process</span><span class="s1">.</span><span class="s0">env</span><span class="s1">.</span><span class="s0">TITLE </span><span class="s4">|| </span><span class="s2">''</span><span class="s1">,</span>
+  <span class="s0">exampleData</span><span class="s4">: </span><span class="s0">examples</span>
+<span class="s1">}</span>
+
+
+<span class="s5">/**</span>
+ <span class="s5">* Index express route</span>
+ <span class="s5">*/</span>
+<span class="s0">app</span><span class="s1">.</span><span class="s0">get</span><span class="s1">(</span><span class="s2">'/'</span><span class="s1">, (</span><span class="s0">req</span><span class="s1">, </span><span class="s0">res</span><span class="s1">) </span><span class="s4">=&gt; </span><span class="s1">{</span>
+  <span class="s0">res</span><span class="s1">.</span><span class="s0">render</span><span class="s1">(</span><span class="s2">'index'</span><span class="s1">, </span><span class="s0">viewData</span><span class="s1">)</span>
+<span class="s1">})</span>
+
+
+<span class="s5">/**</span>
+ <span class="s5">* Sign document express route</span>
+ <span class="s5">*/</span>
+<span class="s0">app</span><span class="s1">.</span><span class="s0">post</span><span class="s1">(</span><span class="s2">'/sign'</span><span class="s1">, </span><span class="s0">async </span><span class="s1">(</span><span class="s0">req</span><span class="s1">, </span><span class="s0">res</span><span class="s1">) </span><span class="s4">=&gt; </span><span class="s1">{</span>
+  <span class="s3">const </span><span class="s0">template </span><span class="s4">= </span><span class="s0">ejs</span><span class="s1">.</span><span class="s0">compile</span><span class="s1">(</span><span class="s0">agreement</span><span class="s1">)</span>
+  <span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">date </span><span class="s4">= </span><span class="s0">moment</span><span class="s1">().</span><span class="s0">format</span><span class="s1">(</span><span class="s2">'MMMM Do, YYYY'</span><span class="s1">)</span>
+
+  <span class="s3">const </span><span class="s0">pdfAgreement </span><span class="s4">= </span><span class="s3">await </span><span class="s0">createDocument</span><span class="s1">(</span><span class="s0">template</span><span class="s1">(</span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">))</span>
+    <span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">agreement </span><span class="s4">= </span><span class="s0">pdfAgreement</span>
+    <span class="s0">res</span><span class="s1">.</span><span class="s0">render</span><span class="s1">(</span><span class="s2">'success'</span><span class="s1">, </span><span class="s0">_</span><span class="s1">.</span><span class="s0">merge</span><span class="s1">(</span><span class="s0">viewData</span><span class="s1">, </span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">))</span>
+
+    <span class="s0">sendEmails</span><span class="s1">(</span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">)</span>
+  
+    <span class="s3">const </span><span class="s0">fmtBody </span><span class="s4">= </span><span class="s1">{</span>
+        <span class="s0">participant</span><span class="s4">: </span><span class="s1">{</span>
+            <span class="s0">name</span><span class="s4">: </span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">name</span><span class="s1">,</span>
+            <span class="s0">email</span><span class="s4">: </span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">email</span><span class="s1">,</span>
+            <span class="s0">phone</span><span class="s4">: </span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">phone</span><span class="s1">,</span>
+            <span class="s0">dob</span><span class="s4">: </span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">dob</span><span class="s1">,</span>
+            <span class="s0">initials</span><span class="s4">: </span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">initials</span><span class="s1">,</span>
+            <span class="s0">signature</span><span class="s4">: </span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">signature</span>
+        <span class="s1">},</span>
+        <span class="s0">parent</span><span class="s4">: </span><span class="s1">{</span>
+            <span class="s0">name</span><span class="s4">: </span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">parentName</span><span class="s1">,</span>
+            <span class="s0">email</span><span class="s4">: </span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">parentEmail</span><span class="s1">,</span>
+            <span class="s0">phone</span><span class="s4">: </span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">parentPhone</span><span class="s1">, </span>
+            <span class="s0">signature</span><span class="s4">: </span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">parentSignature</span><span class="s1">,</span>
+        <span class="s1">},</span>
+        <span class="s0">address</span><span class="s4">: </span><span class="s1">{</span>
+            <span class="s0">street</span><span class="s4">: </span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">address</span><span class="s1">,</span>
+            <span class="s0">city</span><span class="s4">: </span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">city</span><span class="s1">,</span>
+            <span class="s0">province</span><span class="s4">: </span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">province</span><span class="s1">,</span>
+            <span class="s0">zip</span><span class="s4">: </span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">zip</span>
+        <span class="s1">},</span>
+        <span class="s0">date</span><span class="s4">: </span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">date</span><span class="s1">,</span>
+        <span class="s0">agreement</span><span class="s4">: </span><span class="s0">req</span><span class="s1">.</span><span class="s0">body</span><span class="s1">.</span><span class="s0">agreement</span>
+    <span class="s1">}</span>
+    
+    <span class="s3">await </span><span class="s0">axios</span><span class="s1">.</span><span class="s0">post</span><span class="s1">(</span><span class="s2">&quot;http://localhost:5000/&quot;</span><span class="s1">, </span><span class="s0">fmtBody</span><span class="s1">)</span>
+<span class="s1">})</span>
+
+
+<span class="s5">/**</span>
+ <span class="s5">* Generate example agreement</span>
+ <span class="s5">*/</span>
+<span class="s0">app</span><span class="s1">.</span><span class="s0">get</span><span class="s1">(</span><span class="s2">'/example.pdf'</span><span class="s1">, </span><span class="s0">async </span><span class="s1">(</span><span class="s0">req</span><span class="s1">, </span><span class="s0">res</span><span class="s1">) </span><span class="s4">=&gt; </span><span class="s1">{</span>
+  <span class="s3">const </span><span class="s0">template </span><span class="s4">= </span><span class="s0">ejs</span><span class="s1">.</span><span class="s0">compile</span><span class="s1">(</span><span class="s0">agreement</span><span class="s1">)</span>
+  <span class="s3">const </span><span class="s0">data </span><span class="s4">= </span><span class="s0">viewData</span><span class="s1">.</span><span class="s0">exampleData</span>
+  <span class="s0">data</span><span class="s1">.</span><span class="s0">date </span><span class="s4">= </span><span class="s0">moment</span><span class="s1">().</span><span class="s0">format</span><span class="s1">(</span><span class="s2">'MMMM Do, YYYY'</span><span class="s1">)</span>
+
+  <span class="s3">const </span><span class="s0">pdf </span><span class="s4">= </span><span class="s3">await </span><span class="s0">createDocument</span><span class="s1">(</span><span class="s0">template</span><span class="s1">(</span><span class="s0">data</span><span class="s1">)) </span>
+  <span class="s0">res</span><span class="s1">.</span><span class="s0">contentType</span><span class="s1">(</span><span class="s2">&quot;application/pdf&quot;</span><span class="s1">);</span>
+  <span class="s0">res</span><span class="s1">.</span><span class="s0">end</span><span class="s1">(</span><span class="s0">pdf</span><span class="s1">, </span><span class="s2">'base64'</span><span class="s1">);</span>
+
+<span class="s1">})</span>
+
+<span class="s0">app</span><span class="s1">.</span><span class="s0">get</span><span class="s1">(</span><span class="s2">'/example.html'</span><span class="s1">, </span><span class="s0">async </span><span class="s1">(</span><span class="s0">req</span><span class="s1">, </span><span class="s0">res</span><span class="s1">) </span><span class="s4">=&gt; </span><span class="s1">{</span>
+  <span class="s3">const </span><span class="s0">template </span><span class="s4">= </span><span class="s0">ejs</span><span class="s1">.</span><span class="s0">compile</span><span class="s1">(</span><span class="s0">agreement</span><span class="s1">)</span>
+  <span class="s3">const </span><span class="s0">data </span><span class="s4">= </span><span class="s0">viewData</span><span class="s1">.</span><span class="s0">exampleData</span>
+  <span class="s0">data</span><span class="s1">.</span><span class="s0">date </span><span class="s4">= </span><span class="s0">moment</span><span class="s1">().</span><span class="s0">format</span><span class="s1">(</span><span class="s2">'MMMM Do, YYYY'</span><span class="s1">)</span>
+
+  <span class="s0">res</span><span class="s1">.</span><span class="s0">end</span><span class="s1">(</span><span class="s0">template</span><span class="s1">(</span><span class="s0">data</span><span class="s1">))</span>
+
+<span class="s1">})</span>
+
+
+<span class="s5">/**</span>
+ <span class="s5">* Start express server</span>
+ <span class="s5">*/</span>
+<span class="s0">app</span><span class="s1">.</span><span class="s0">listen</span><span class="s1">(</span><span class="s0">process</span><span class="s1">.</span><span class="s0">env</span><span class="s1">.</span><span class="s0">PORT </span><span class="s4">|| </span><span class="s6">3000</span><span class="s1">, () </span><span class="s4">=&gt; </span><span class="s0">console</span><span class="s1">.</span><span class="s0">log</span><span class="s1">(</span><span class="s2">'PactMaker is up and running!'</span><span class="s1">))</span>
+
+
+<span class="s5">/**</span>
+ <span class="s5">* Send emails to the signee and internal team</span>
+ <span class="s5">* </span><span class="s7">@param  </span><span class="s5">{Object} data Request body data</span>
+ <span class="s5">*/</span>
+<span class="s3">function </span><span class="s0">sendEmails</span><span class="s1">(</span><span class="s0">data</span><span class="s1">) {</span>
+  <span class="s3">const </span><span class="s0">attachment </span><span class="s4">= </span><span class="s1">{</span>
+    <span class="s2">'Content'</span><span class="s4">: </span><span class="s0">data</span><span class="s1">.</span><span class="s0">agreement</span><span class="s1">,</span>
+    <span class="s2">'Name'</span><span class="s4">: </span><span class="s2">`AngelHacks Toronto Liability Waiver </span><span class="s0">$</span><span class="s1">{</span><span class="s0">data</span><span class="s1">.</span><span class="s0">date</span><span class="s1">}</span><span class="s2">.pdf`</span><span class="s1">,</span>
+    <span class="s2">'ContentType'</span><span class="s4">: </span><span class="s2">'application/pdf'</span>
+  <span class="s1">}</span>
+
+  <span class="s5">// Send email to customer</span>
+  <span class="s0">client</span><span class="s1">.</span><span class="s0">sendEmail</span><span class="s1">({</span>
+    <span class="s2">'From'</span><span class="s4">: </span><span class="s0">process</span><span class="s1">.</span><span class="s0">env</span><span class="s1">.</span><span class="s0">POSTMARK_FROM_ADDRESS</span><span class="s1">,</span>
+    <span class="s2">'To'</span><span class="s4">: </span><span class="s2">`</span><span class="s0">$</span><span class="s1">{</span><span class="s0">data</span><span class="s1">.</span><span class="s0">email</span><span class="s1">}</span><span class="s2">, </span><span class="s0">$</span><span class="s1">{</span><span class="s0">data</span><span class="s1">.</span><span class="s0">parentEmail</span><span class="s1">}</span><span class="s2">`</span><span class="s1">,</span>
+    <span class="s2">'Subject'</span><span class="s4">: </span><span class="s0">signeeSubject</span><span class="s1">(</span><span class="s0">data</span><span class="s1">),</span>
+    <span class="s2">'HtmlBody'</span><span class="s4">: </span><span class="s0">emailContentSignee</span><span class="s1">(</span><span class="s0">data</span><span class="s1">),</span>
+      <span class="s2">'MessageStream'</span><span class="s4">: </span><span class="s2">`waivers`</span><span class="s1">,</span>
+    <span class="s2">'Attachments'</span><span class="s4">: </span><span class="s1">[</span><span class="s0">attachment</span><span class="s1">]</span>
+  <span class="s1">}, (</span><span class="s0">err</span><span class="s1">, </span><span class="s0">results</span><span class="s1">) </span><span class="s4">=&gt; </span><span class="s1">{</span>
+    <span class="s3">if </span><span class="s1">(</span><span class="s0">err</span><span class="s1">) {</span>
+      <span class="s0">console</span><span class="s1">.</span><span class="s0">error</span><span class="s1">(</span><span class="s0">err</span><span class="s1">)</span>
+      <span class="s3">return</span>
+    <span class="s1">}</span>
+
+    <span class="s0">console</span><span class="s1">.</span><span class="s0">log</span><span class="s1">(</span><span class="s2">'Email sent:'</span><span class="s1">)</span>
+    <span class="s0">console</span><span class="s1">.</span><span class="s0">log</span><span class="s1">(</span><span class="s0">results</span><span class="s1">)</span>
+  <span class="s1">})</span>
+
+
+  <span class="s5">// Send email notification to internal team</span>
+  <span class="s3">if </span><span class="s1">(</span><span class="s0">process</span><span class="s1">.</span><span class="s0">env</span><span class="s1">.</span><span class="s0">INTERNAL_EMAIL_RECIPIENTS</span><span class="s1">) {</span>
+    <span class="s3">const </span><span class="s0">internalRecipients </span><span class="s4">= </span><span class="s0">process</span><span class="s1">.</span><span class="s0">env</span><span class="s1">.</span><span class="s0">INTERNAL_EMAIL_RECIPIENTS</span><span class="s1">.</span><span class="s0">split</span><span class="s1">(</span><span class="s2">','</span><span class="s1">)</span>
+
+    <span class="s0">internalRecipients</span><span class="s1">.</span><span class="s0">forEach</span><span class="s1">((</span><span class="s0">email</span><span class="s1">) </span><span class="s4">=&gt; </span><span class="s1">{</span>
+      <span class="s0">client</span><span class="s1">.</span><span class="s0">sendEmail</span><span class="s1">({</span>
+        <span class="s2">'From'</span><span class="s4">: </span><span class="s0">process</span><span class="s1">.</span><span class="s0">env</span><span class="s1">.</span><span class="s0">POSTMARK_FROM_ADDRESS</span><span class="s1">,</span>
+        <span class="s2">'To'</span><span class="s4">: </span><span class="s0">email</span><span class="s1">,</span>
+        <span class="s2">'Subject'</span><span class="s4">: </span><span class="s0">internalSubject</span><span class="s1">(</span><span class="s0">data</span><span class="s1">),</span>
+        <span class="s2">'HtmlBody'</span><span class="s4">: </span><span class="s0">emailContentInternal</span><span class="s1">(</span><span class="s0">data</span><span class="s1">),</span>
+        <span class="s2">'Attachments'</span><span class="s4">: </span><span class="s1">[</span><span class="s0">attachment</span><span class="s1">]</span>
+      <span class="s1">}, (</span><span class="s0">err</span><span class="s1">, </span><span class="s0">results</span><span class="s1">) </span><span class="s4">=&gt; </span><span class="s1">{</span>
+        <span class="s3">if </span><span class="s1">(</span><span class="s0">err</span><span class="s1">) {</span>
+          <span class="s0">console</span><span class="s1">.</span><span class="s0">error</span><span class="s1">(</span><span class="s0">err</span><span class="s1">)</span>
+          <span class="s3">return</span>
+        <span class="s1">}</span>
+
+        <span class="s0">console</span><span class="s1">.</span><span class="s0">log</span><span class="s1">(</span><span class="s2">'Email sent:'</span><span class="s1">)</span>
+        <span class="s0">console</span><span class="s1">.</span><span class="s0">log</span><span class="s1">(</span><span class="s0">results</span><span class="s1">)</span>
+      <span class="s1">})</span>
+    <span class="s1">})</span>
+  <span class="s1">}</span>
+<span class="s1">}</span>
+
+
+<span class="s5">/**</span>
+ <span class="s5">* Create PDF document</span>
+ <span class="s5">* </span><span class="s7">@param  </span><span class="s5">{Object}   content  HTMl content content</span>
+ <span class="s5">* </span><span class="s7">@param  </span><span class="s5">{Function} callback Callback containing the encoded PDF buffer</span>
+ <span class="s5">*/</span>
+<span class="s0">async </span><span class="s3">function </span><span class="s0">createDocument</span><span class="s1">(</span><span class="s0">content</span><span class="s1">, </span><span class="s0">callback</span><span class="s1">) {</span>
+
+  <span class="s3">let </span><span class="s0">dataUrl </span><span class="s4">= </span><span class="s2">&quot;data:text/html;base64,&quot; </span><span class="s4">+ </span><span class="s0">btoa</span><span class="s1">(</span><span class="s0">unescape</span><span class="s1">(</span><span class="s0">encodeURIComponent</span><span class="s1">(</span><span class="s0">content</span><span class="s1">)))</span>
+
+  <span class="s3">const </span><span class="s0">browser </span><span class="s4">= </span><span class="s3">await </span><span class="s0">chromium</span><span class="s1">.</span><span class="s0">launch</span><span class="s1">({</span>
+    <span class="s0">headless</span><span class="s4">: </span><span class="s3">true</span>
+  <span class="s1">});</span>
+  <span class="s3">const </span><span class="s0">context </span><span class="s4">= </span><span class="s3">await </span><span class="s0">browser</span><span class="s1">.</span><span class="s0">newContext</span><span class="s1">();</span>
+  
+  <span class="s5">// Create a page.</span>
+  <span class="s3">const </span><span class="s0">page </span><span class="s4">= </span><span class="s3">await </span><span class="s0">context</span><span class="s1">.</span><span class="s0">newPage</span><span class="s1">();</span>
+
+  <span class="s3">await </span><span class="s0">page</span><span class="s1">.</span><span class="s0">goto</span><span class="s1">(</span><span class="s0">dataUrl</span><span class="s1">)</span>
+
+  <span class="s3">const </span><span class="s0">pdf </span><span class="s4">= </span><span class="s3">await </span><span class="s0">page</span><span class="s1">.</span><span class="s0">pdf</span><span class="s1">({</span>
+    <span class="s0">format</span><span class="s4">: </span><span class="s2">&quot;letter&quot;</span><span class="s1">,</span>
+    <span class="s0">landscape</span><span class="s4">: </span><span class="s3">false</span><span class="s1">,</span>
+    <span class="s0">margin</span><span class="s4">: </span><span class="s1">{</span>
+      <span class="s0">top</span><span class="s4">: </span><span class="s2">&quot;48px&quot;</span><span class="s1">,</span>
+      <span class="s0">bottom</span><span class="s4">: </span><span class="s2">&quot;48px&quot;</span><span class="s1">,</span>
+      <span class="s0">left</span><span class="s4">: </span><span class="s2">&quot;48px&quot;</span><span class="s1">,</span>
+      <span class="s0">right</span><span class="s4">: </span><span class="s2">&quot;48px&quot;</span>
+    <span class="s1">}</span>
+  <span class="s1">})</span>
+
+
+  <span class="s3">return </span><span class="s0">pdf</span><span class="s1">.</span><span class="s0">toString</span><span class="s1">(</span><span class="s2">'base64'</span><span class="s1">);</span>
+<span class="s1">}</span>
+
+
+
+
+
+
+<span class="s5">/**</span>
+ <span class="s5">* Validate heroku config</span>
+ <span class="s5">*/</span>
+<span class="s3">function </span><span class="s0">validateConfig</span><span class="s1">() {</span>
+  <span class="s3">if </span><span class="s1">(</span><span class="s4">!</span><span class="s0">process</span><span class="s1">.</span><span class="s0">env</span><span class="s1">.</span><span class="s0">POSTMARK_FROM_ADDRESS</span><span class="s1">) {</span>
+    <span class="s3">throw </span><span class="s0">Error</span><span class="s1">(</span><span class="s2">'No From address specified in config'</span><span class="s1">)</span>
+  <span class="s1">}</span>
+  <span class="s3">if </span><span class="s1">(</span><span class="s4">!</span><span class="s0">process</span><span class="s1">.</span><span class="s0">env</span><span class="s1">.</span><span class="s0">POSTMARK_SERVER_TOKEN</span><span class="s1">) {</span>
+    <span class="s3">throw </span><span class="s0">Error</span><span class="s1">(</span><span class="s2">'No Postmark server token specified in config'</span><span class="s1">)</span>
+  <span class="s1">}</span>
+<span class="s1">}</span>
+</pre>
+</body>
+</html>
