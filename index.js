@@ -80,8 +80,7 @@ app.post('/sign', async (req, res) => {
         date: req.body.date,
         agreement: req.body.agreement
     }
-    
-    await axios.post("http://localhost:5000/", fmtBody)
+
 })
 
 
